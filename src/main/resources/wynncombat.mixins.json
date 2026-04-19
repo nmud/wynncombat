@@ -1,0 +1,14 @@
+{
+	"required": true,
+	"package": "io.github.nmud.wynncombat.mixin",
+	"compatibilityLevel": "JAVA_25",
+	"mixins": [
+		"WynnCombatMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	},
+	"overwrites": {
+		"requireAnnotations": true
+	}
+}

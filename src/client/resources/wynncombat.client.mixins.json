@@ -1,0 +1,14 @@
+{
+	"required": true,
+	"package": "io.github.nmud.wynncombat.client.mixin",
+	"compatibilityLevel": "JAVA_25",
+	"client": [
+		"WynnCombatClientMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	},
+	"overwrites": {
+		"requireAnnotations": true
+	}
+}
