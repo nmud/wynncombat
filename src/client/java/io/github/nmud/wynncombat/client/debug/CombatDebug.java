@@ -47,5 +47,6 @@ public final class CombatDebug {
 	public static void toggle() {
 		DebugLogger.get().toggle();
 		lastActionBar = null;
+		FocusedEntityTracker.reset();
 	}
 }

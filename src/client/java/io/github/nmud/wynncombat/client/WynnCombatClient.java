@@ -3,6 +3,7 @@ package io.github.nmud.wynncombat.client;
 import com.mojang.blaze3d.platform.InputConstants;
 import io.github.nmud.wynncombat.WynnCombat;
 import io.github.nmud.wynncombat.client.debug.CombatDebug;
+import io.github.nmud.wynncombat.client.debug.FocusedEntityTracker;
 import io.github.nmud.wynncombat.client.gui.WynnCombatScreen;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -47,6 +48,8 @@ public class WynnCombatClient implements ClientModInitializer {
 			while (toggleDebugKey.consumeClick()) {
 				CombatDebug.toggle();
 			}
+
+			FocusedEntityTracker.tick(client);
 		});
 	}
 }
