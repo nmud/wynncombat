@@ -1,4 +1,5 @@
 {
 	"key.category.wynncombat.main": "WynnCombat",
-	"key.wynncombat.open_menu": "Open WynnCombat Menu"
+	"key.wynncombat.open_menu": "Open WynnCombat Menu",
+	"key.wynncombat.toggle_debug": "Toggle Debug Logging"
 }

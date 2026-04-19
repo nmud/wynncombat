@@ -3,6 +3,8 @@
 	"package": "io.github.nmud.wynncombat.client.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"client": [
+		"EntityDataPacketMixin",
+		"SoundPacketMixin",
 		"WynnCombatClientMixin"
 	],
 	"injectors": {
