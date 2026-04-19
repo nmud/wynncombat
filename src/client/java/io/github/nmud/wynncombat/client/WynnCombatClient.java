@@ -2,12 +2,16 @@ package io.github.nmud.wynncombat.client;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import io.github.nmud.wynncombat.WynnCombat;
+import io.github.nmud.wynncombat.client.combat.AbilityLog;
+import io.github.nmud.wynncombat.client.combat.AbilityLogOverlay;
 import io.github.nmud.wynncombat.client.debug.CombatDebug;
 import io.github.nmud.wynncombat.client.debug.FocusedEntityTracker;
 import io.github.nmud.wynncombat.client.gui.WynnCombatScreen;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.resources.Identifier;
 import org.lwjgl.glfw.GLFW;
@@ -37,6 +41,13 @@ public class WynnCombatClient implements ClientModInitializer {
 		));
 
 		CombatDebug.register();
+		AbilityLog.register();
+
+		HudElementRegistry.attachElementBefore(
+			VanillaHudElements.CHAT,
+			Identifier.fromNamespaceAndPath(WynnCombat.MOD_ID, "ability_log"),
+			new AbilityLogOverlay()
+		);
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			while (openMenuKey.consumeClick()) {
