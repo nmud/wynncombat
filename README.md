@@ -16,6 +16,7 @@ A Wynncraft combat HUD mod for Fabric.
   - Per-second DPS samples across the whole recording.
   - Overall average DPS and peak DPS for the session.
   - Start/stop keybind, saved sessions, and a viewer screen.
+  - Timeline viewer that shows at what points what was casted and tracks DPS in like a graph over time
 - [ ] **Show overlay highlight in settings view** — when a feature's settings screen is open (not just Edit Position/Size mode), still render the corresponding overlay box highlighted so the user can see which area is being configured.
 - [ ] **DPS label customization** — per-window customization for the DPS value label:
   - User-inputtable label text per time window (replace the auto `"1s"`, `"30s"`, etc.).
