@@ -1,5 +1,6 @@
 package io.github.nmud.wynncombat.client.mixin;
 
+import io.github.nmud.wynncombat.client.damage.DamageTracker;
 import io.github.nmud.wynncombat.client.debug.DebugLogger;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.network.chat.Component;
@@ -27,23 +28,27 @@ import java.util.Optional;
 @Mixin(ClientPacketListener.class)
 public class EntityDataPacketMixin {
 	@Inject(method = "handleSetEntityData", at = @At("HEAD"))
-	private void wynncombat$logEntityData(ClientboundSetEntityDataPacket packet, CallbackInfo ci) {
-		DebugLogger debug = DebugLogger.get();
-		if (!debug.isEnabled()) return;
-
+	private void wynncombat$captureEntityData(ClientboundSetEntityDataPacket packet, CallbackInfo ci) {
 		List<SynchedEntityData.DataValue<?>> items = packet.packedItems();
 		if (items == null || items.isEmpty()) return;
+
+		DebugLogger debug = DebugLogger.get();
+		boolean debugging = debug.isEnabled();
 
 		for (SynchedEntityData.DataValue<?> item : items) {
 			Component component = extractComponent(item.value());
 			if (component == null) continue;
 
-			debug.log(
-				"ENTITY",
-				"id=" + packet.id()
-					+ " field=" + item.id()
-					+ " styled=\"" + DebugLogger.escape(DebugLogger.styled(component)) + "\""
-			);
+			DamageTracker.get().onEntityText(packet.id(), component);
+
+			if (debugging) {
+				debug.log(
+					"ENTITY",
+					"id=" + packet.id()
+						+ " field=" + item.id()
+						+ " styled=\"" + DebugLogger.escape(DebugLogger.styled(component)) + "\""
+				);
+			}
 		}
 	}
 

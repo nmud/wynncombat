@@ -66,6 +66,7 @@ public final class AbilityLogOverlay implements HudElement {
 		if (mc.options.hideGui && !editing) return;
 
 		OverlayConfig cfg = OverlayConfig.get();
+		if (!cfg.enabled && !editing) return;
 		Font font = mc.font;
 		int screenW = graphics.guiWidth();
 		int screenH = graphics.guiHeight();

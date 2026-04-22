@@ -43,9 +43,9 @@ public class WynnCombatScreen extends Screen {
 			.bounds(btnX, contentY, BTN_W, BTN_H)
 			.build());
 
-		this.addRenderableWidget(Button.builder(Component.literal("Damage Stats (Coming Soon)"), b -> {
+		this.addRenderableWidget(Button.builder(Component.literal("DPS Counter"), b -> {
 				if (this.minecraft != null) {
-					this.minecraft.setScreen(new PlaceholderScreen(this, "Damage Stats"));
+					this.minecraft.setScreen(new DpsScreen(this));
 				}
 			})
 			.bounds(btnX, contentY + BTN_H + ROW_GAP, BTN_W, BTN_H)

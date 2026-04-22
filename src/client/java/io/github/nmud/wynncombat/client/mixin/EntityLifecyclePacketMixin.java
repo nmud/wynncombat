@@ -1,5 +1,6 @@
 package io.github.nmud.wynncombat.client.mixin;
 
+import io.github.nmud.wynncombat.client.damage.DamageTracker;
 import io.github.nmud.wynncombat.client.debug.DebugLogger;
 import it.unimi.dsi.fastutil.ints.IntList;
 import net.minecraft.client.multiplayer.ClientPacketListener;
@@ -49,14 +50,19 @@ public class EntityLifecyclePacketMixin {
 	}
 
 	@Inject(method = "handleRemoveEntities", at = @At("HEAD"))
-	private void wynncombat$logRemoveEntities(ClientboundRemoveEntitiesPacket packet, CallbackInfo ci) {
-		DebugLogger debug = DebugLogger.get();
-		if (!debug.isEnabled()) return;
-
+	private void wynncombat$handleRemoveEntities(ClientboundRemoveEntitiesPacket packet, CallbackInfo ci) {
 		IntList ids = packet.getEntityIds();
 		if (ids == null || ids.isEmpty()) return;
 
-		debug.log("ENT_REMOVE", "ids=" + ids);
+		DamageTracker tracker = DamageTracker.get();
+		for (int i = 0; i < ids.size(); i++) {
+			tracker.onEntityRemoved(ids.getInt(i));
+		}
+
+		DebugLogger debug = DebugLogger.get();
+		if (debug.isEnabled()) {
+			debug.log("ENT_REMOVE", "ids=" + ids);
+		}
 	}
 
 	private static String entityTypeId(EntityType<?> type) {

@@ -121,6 +121,8 @@ public final class OverlayConfig {
 		}
 	}
 
+	/** Master toggle. When {@code false}, the overlay does not render at all. */
+	public boolean enabled = true;
 	public Anchor anchor = Anchor.BOTTOM_RIGHT;
 	public int offsetX = 5;
 	public int offsetY = 50;
@@ -165,6 +167,7 @@ public final class OverlayConfig {
 
 	public void resetToDefaults() {
 		OverlayConfig fresh = new OverlayConfig();
+		this.enabled = fresh.enabled;
 		this.anchor = fresh.anchor;
 		this.offsetX = fresh.offsetX;
 		this.offsetY = fresh.offsetY;

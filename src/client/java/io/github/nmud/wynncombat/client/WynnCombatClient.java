@@ -4,6 +4,9 @@ import com.mojang.blaze3d.platform.InputConstants;
 import io.github.nmud.wynncombat.WynnCombat;
 import io.github.nmud.wynncombat.client.combat.AbilityLog;
 import io.github.nmud.wynncombat.client.combat.AbilityLogOverlay;
+import io.github.nmud.wynncombat.client.combat.OverlayConfig;
+import io.github.nmud.wynncombat.client.damage.DpsConfig;
+import io.github.nmud.wynncombat.client.damage.DpsOverlay;
 import io.github.nmud.wynncombat.client.debug.CombatDebug;
 import io.github.nmud.wynncombat.client.debug.FocusedEntityTracker;
 import io.github.nmud.wynncombat.client.gui.WynnCombatScreen;
@@ -19,6 +22,10 @@ import org.lwjgl.glfw.GLFW;
 public class WynnCombatClient implements ClientModInitializer {
 	public static KeyMapping openMenuKey;
 	public static KeyMapping toggleDebugKey;
+	public static KeyMapping toggleAbilityLogKey;
+	public static KeyMapping toggleDpsKey;
+	public static KeyMapping dpsCyclePrevKey;
+	public static KeyMapping dpsCycleNextKey;
 
 	@Override
 	public void onInitializeClient() {
@@ -40,6 +47,38 @@ public class WynnCombatClient implements ClientModInitializer {
 			category
 		));
 
+		// Overlay toggles start UNBOUND -- they're sticky state changes users
+		// rarely flip during play, so no reason to claim a default keycap.
+		toggleAbilityLogKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
+			"key.wynncombat.toggle_ability_log",
+			InputConstants.Type.KEYSYM,
+			GLFW.GLFW_KEY_UNKNOWN,
+			category
+		));
+
+		toggleDpsKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
+			"key.wynncombat.toggle_dps",
+			InputConstants.Type.KEYSYM,
+			GLFW.GLFW_KEY_UNKNOWN,
+			category
+		));
+
+		// Cycle bindings are only meaningful when Display Mode = Cycle, so it
+		// makes sense to ship sensible defaults.
+		dpsCyclePrevKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
+			"key.wynncombat.dps_cycle_prev",
+			InputConstants.Type.KEYSYM,
+			GLFW.GLFW_KEY_LEFT,
+			category
+		));
+
+		dpsCycleNextKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
+			"key.wynncombat.dps_cycle_next",
+			InputConstants.Type.KEYSYM,
+			GLFW.GLFW_KEY_RIGHT,
+			category
+		));
+
 		CombatDebug.register();
 		AbilityLog.register();
 
@@ -47,6 +86,12 @@ public class WynnCombatClient implements ClientModInitializer {
 			VanillaHudElements.CHAT,
 			Identifier.fromNamespaceAndPath(WynnCombat.MOD_ID, "ability_log"),
 			new AbilityLogOverlay()
+		);
+
+		HudElementRegistry.attachElementBefore(
+			VanillaHudElements.CHAT,
+			Identifier.fromNamespaceAndPath(WynnCombat.MOD_ID, "dps_overlay"),
+			new DpsOverlay()
 		);
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
@@ -58,6 +103,32 @@ public class WynnCombatClient implements ClientModInitializer {
 
 			while (toggleDebugKey.consumeClick()) {
 				CombatDebug.toggle();
+			}
+
+			while (toggleAbilityLogKey.consumeClick()) {
+				OverlayConfig cfg = OverlayConfig.get();
+				cfg.enabled = !cfg.enabled;
+				OverlayConfig.save();
+			}
+
+			while (toggleDpsKey.consumeClick()) {
+				DpsConfig cfg = DpsConfig.get();
+				cfg.enabled = !cfg.enabled;
+				DpsConfig.save();
+			}
+
+			while (dpsCyclePrevKey.consumeClick()) {
+				DpsConfig cfg = DpsConfig.get();
+				if (cfg.enabled && cfg.displayMode == DpsConfig.DisplayMode.CYCLE) {
+					cfg.cyclePrev();
+				}
+			}
+
+			while (dpsCycleNextKey.consumeClick()) {
+				DpsConfig cfg = DpsConfig.get();
+				if (cfg.enabled && cfg.displayMode == DpsConfig.DisplayMode.CYCLE) {
+					cfg.cycleNext();
+				}
 			}
 
 			FocusedEntityTracker.tick(client);
