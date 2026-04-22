@@ -8,6 +8,7 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import org.joml.Matrix3x2fStack;
 
 import java.util.List;
 
@@ -17,15 +18,12 @@ import java.util.List;
  * last second of their lifetime.
  *
  * <p>Reads its position, size, colors, and timing from {@link OverlayConfig}.
- * When {@link #setEditing(boolean) editing mode} is enabled (set by
- * {@code WynnCombatScreen}), the overlay always renders, draws a visible
+ * When {@link #setEditing(boolean) editing mode} is enabled (set by the
+ * ability-log edit screen), the overlay always renders, draws a visible
  * border, fills with sample entries when empty, and exposes a small resize
  * handle in the bottom-right corner.
  */
 public final class AbilityLogOverlay implements HudElement {
-	private static final String MANA_ICON = "\uE531";
-	private static final String HEALTH_ICON = "\uE530";
-
 	private static final int LINE_GAP = 1;
 	private static final int BG_PAD_X = 3;
 	private static final int BG_PAD_Y = 1;
@@ -103,10 +101,14 @@ public final class AbilityLogOverlay implements HudElement {
 
 		List<AbilityLogEntry> render = hasEntries ? recent : sampleEntries();
 		long now = System.currentTimeMillis();
-		int lineH = font.lineHeight + LINE_GAP;
-		int maxLines = Math.max(1, (cfg.height - 2 * BG_PAD_Y) / lineH);
+
+		float scale = cfg.fontSize.multiplier;
+		int scaledLineH = Math.max(1, Math.round((font.lineHeight + LINE_GAP) * scale));
+		int scaledGlyphH = Math.max(1, Math.round(font.lineHeight * scale));
+		int maxLines = Math.max(1, (cfg.height - 2 * BG_PAD_Y) / scaledLineH);
 		int startIdx = Math.max(0, render.size() - maxLines);
 
+		Matrix3x2fStack pose = graphics.pose();
 		int rowFromBottom = 0;
 		for (int i = render.size() - 1; i >= startIdx; i--) {
 			AbilityLogEntry entry = render.get(i);
@@ -124,13 +126,19 @@ public final class AbilityLogOverlay implements HudElement {
 
 			Component line = formatEntry(entry, cfg);
 			int textW = font.width(line);
+			int scaledTextW = Math.round(textW * scale);
 			int x = cfg.anchor.right
-				? boxX + cfg.width - BG_PAD_X - textW
+				? boxX + cfg.width - BG_PAD_X - scaledTextW
 				: boxX + BG_PAD_X;
-			int y = boxY + cfg.height - BG_PAD_Y - font.lineHeight - lineH * rowFromBottom;
+			int y = boxY + cfg.height - BG_PAD_Y - scaledGlyphH - scaledLineH * rowFromBottom;
 
 			int textColor = ((alpha & 0xFF) << 24) | (cfg.textColor.color & 0x00FFFFFF);
-			graphics.text(font, line, x, y, textColor, cfg.shadow);
+
+			pose.pushMatrix();
+			pose.translate((float) x, (float) y);
+			pose.scale(scale, scale);
+			graphics.text(font, line, 0, 0, textColor, cfg.shadow);
+			pose.popMatrix();
 
 			rowFromBottom++;
 		}
@@ -139,9 +147,9 @@ public final class AbilityLogOverlay implements HudElement {
 	private static List<AbilityLogEntry> sampleEntries() {
 		long now = System.currentTimeMillis();
 		return List.of(
-			new AbilityLogEntry("Bash", 21, 0, now),
-			new AbilityLogEntry("War Scream", 35, 0, now),
-			new AbilityLogEntry("Charge", 10, 0, now)
+			new AbilityLogEntry("Bash", 21, 0, now, 1),
+			new AbilityLogEntry("War Scream", 35, 0, now, 1),
+			new AbilityLogEntry("Charge", 30, 0, now, 3)
 		);
 	}
 
@@ -162,17 +170,21 @@ public final class AbilityLogOverlay implements HudElement {
 	}
 
 	private static Component formatEntry(AbilityLogEntry entry, OverlayConfig cfg) {
-		MutableComponent c = Component.literal(entry.spellName());
+		String name = entry.spellName();
+		if (entry.stackCount() > 1) {
+			name = name + " x" + entry.stackCount();
+		}
+		MutableComponent c = Component.literal(name);
 		if (entry.manaCost() > 0) {
-			String tail = cfg.showIcons
-				? "  -" + entry.manaCost() + " " + MANA_ICON
-				: "  -" + entry.manaCost() + " mana";
+			String tail = cfg.showManaLabel
+				? "  -" + entry.manaCost() + " mana"
+				: "  -" + entry.manaCost();
 			c.append(Component.literal(tail).withStyle(ChatFormatting.AQUA));
 		}
 		if (entry.healthCost() > 0) {
-			String tail = cfg.showIcons
-				? "  -" + entry.healthCost() + " " + HEALTH_ICON
-				: "  -" + entry.healthCost() + " hp";
+			String tail = cfg.showManaLabel
+				? "  -" + entry.healthCost() + " hp"
+				: "  -" + entry.healthCost();
 			c.append(Component.literal(tail).withStyle(ChatFormatting.RED));
 		}
 		return c;

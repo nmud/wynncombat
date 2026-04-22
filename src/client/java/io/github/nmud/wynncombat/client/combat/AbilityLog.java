@@ -20,9 +20,15 @@ import java.util.List;
  * Wynntils' approach (see
  * <a href="https://github.com/Wynntils/Wynntils/blob/main/common/src/main/java/com/wynntils/models/spells/SpellModel.java">SpellModel#handleSpellCast</a>):
  * fire a log entry only on the rising edge - i.e. when the current action bar
- * contains a cast banner and the previous one didn't. The same spell cast back
- * to back without the banner ever clearing therefore only counts once, which
- * matches Wynntils' behaviour and is acceptable for v1.
+ * contains a cast banner and the previous one didn't.
+ *
+ * <p><b>Stacking:</b> Wynntils additionally tracks
+ * {@code repeatedSpellCount} - how many times the same spell was cast in a
+ * row. We mirror that: if a new cast has the same spell name as the latest
+ * live entry (within {@code entryLifetimeMs}), we merge into that entry
+ * instead of appending a new row, summing mana/health costs and bumping
+ * {@link AbilityLogEntry#stackCount()}. So spamming Bash three times shows
+ * up as a single "Bash x3 -63 mana" row rather than three separate lines.
  *
  * <p>The log is intentionally process-local: the listener is registered once
  * during client init and runs whenever Minecraft is connected to a server.
@@ -32,6 +38,14 @@ import java.util.List;
 public final class AbilityLog {
 	private static final AbilityLog INSTANCE = new AbilityLog();
 	private static final int MAX_ENTRIES = 32;
+
+	/**
+	 * Max gap between consecutive same-spell casts that still counts as a
+	 * "repeat" (and therefore merges into the previous entry). Kept small
+	 * enough that two genuinely separate casting bursts don't collapse into
+	 * one row, but long enough to cover normal back-to-back combos.
+	 */
+	private static final long STACK_WINDOW_MS = 5_000L;
 
 	private final Object lock = new Object();
 	private final Deque<AbilityLogEntry> entries = new ArrayDeque<>(MAX_ENTRIES);
@@ -63,14 +77,28 @@ public final class AbilityLog {
 	}
 
 	private void record(SpellCastInfo info) {
-		AbilityLogEntry entry = new AbilityLogEntry(
-			info.spellName(),
-			info.manaCost(),
-			info.healthCost(),
-			System.currentTimeMillis()
-		);
+		long now = System.currentTimeMillis();
 		synchronized (lock) {
-			entries.addLast(entry);
+			AbilityLogEntry last = entries.peekLast();
+			if (last != null
+				&& last.spellName().equals(info.spellName())
+				&& (now - last.timestampMs()) <= STACK_WINDOW_MS) {
+				entries.removeLast();
+				entries.addLast(new AbilityLogEntry(
+					last.spellName(),
+					last.manaCost() + info.manaCost(),
+					last.healthCost() + info.healthCost(),
+					now,
+					last.stackCount() + 1
+				));
+				return;
+			}
+			entries.addLast(new AbilityLogEntry(
+				info.spellName(),
+				info.manaCost(),
+				info.healthCost(),
+				now
+			));
 			while (entries.size() > MAX_ENTRIES) {
 				entries.removeFirst();
 			}

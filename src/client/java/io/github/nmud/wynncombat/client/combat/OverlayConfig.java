@@ -89,6 +89,38 @@ public final class OverlayConfig {
 		}
 	}
 
+	/**
+	 * Discrete font-scale presets for the overlay text. The default ({@code THREE})
+	 * is slightly larger than vanilla 1x so the overlay is readable at normal GUI
+	 * scale. 1 / 2 / 3 / 4 map to multipliers that bracket the useful range.
+	 */
+	public enum FontSize {
+		ONE(1, 0.75f),
+		TWO(2, 1.0f),
+		THREE(3, 1.25f),
+		FOUR(4, 1.5f);
+
+		public final int level;
+		public final float multiplier;
+
+		FontSize(int level, float multiplier) {
+			this.level = level;
+			this.multiplier = multiplier;
+		}
+
+		public FontSize next() {
+			FontSize[] all = values();
+			return all[(ordinal() + 1) % all.length];
+		}
+
+		public static FontSize fromLevel(int level) {
+			for (FontSize s : values()) {
+				if (s.level == level) return s;
+			}
+			return THREE;
+		}
+	}
+
 	public Anchor anchor = Anchor.BOTTOM_RIGHT;
 	public int offsetX = 5;
 	public int offsetY = 50;
@@ -97,7 +129,9 @@ public final class OverlayConfig {
 	public TextColor textColor = TextColor.WHITE;
 	public Background background = Background.DARK;
 	public boolean shadow = true;
-	public boolean showIcons = false;
+	/** When true, show " mana"/" hp" text next to cost numbers. Otherwise show just "-21". */
+	public boolean showManaLabel = true;
+	public FontSize fontSize = FontSize.THREE;
 	public long entryLifetimeMs = 5000;
 	public long fadeMs = 800;
 
@@ -139,7 +173,8 @@ public final class OverlayConfig {
 		this.textColor = fresh.textColor;
 		this.background = fresh.background;
 		this.shadow = fresh.shadow;
-		this.showIcons = fresh.showIcons;
+		this.showManaLabel = fresh.showManaLabel;
+		this.fontSize = fresh.fontSize;
 		this.entryLifetimeMs = fresh.entryLifetimeMs;
 		this.fadeMs = fresh.fadeMs;
 	}
@@ -163,6 +198,7 @@ public final class OverlayConfig {
 		if (anchor == null) anchor = Anchor.BOTTOM_RIGHT;
 		if (background == null) background = Background.DARK;
 		if (textColor == null) textColor = TextColor.WHITE;
+		if (fontSize == null) fontSize = FontSize.THREE;
 		if (entryLifetimeMs < 500) entryLifetimeMs = 500;
 		if (entryLifetimeMs > 60_000) entryLifetimeMs = 60_000;
 		if (fadeMs < 0) fadeMs = 0;
