@@ -11,6 +11,7 @@ A Wynncraft combat HUD mod for Fabric.
 
 ## TODO
 
+- [ ] **Ability Log Update** Have a toggle for spell stacking (so x2/x3 become individualized and show base (+additional cost) for example Dash 15 (+5) 
 - [ ] **DPS Recorder** — record a section of combat and capture:
   - Every ability cast during the recording, with timings between casts.
   - Per-second DPS samples across the whole recording.
