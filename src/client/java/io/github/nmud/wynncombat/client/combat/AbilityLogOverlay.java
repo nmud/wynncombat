@@ -172,22 +172,38 @@ public final class AbilityLogOverlay implements HudElement {
 
 	private static Component formatEntry(AbilityLogEntry entry, OverlayConfig cfg) {
 		String name = entry.spellName();
-		if (entry.stackCount() > 1) {
+		if (cfg.stackAbilities && entry.stackCount() > 1) {
 			name = name + " x" + entry.stackCount();
 		}
 		MutableComponent c = Component.literal(name);
 		if (entry.manaCost() > 0) {
-			String tail = cfg.showManaLabel
-				? "  -" + entry.manaCost() + " mana"
-				: "  -" + entry.manaCost();
-			c.append(Component.literal(tail).withStyle(ChatFormatting.AQUA));
+			c.append(Component.literal(formatCostTail(
+				entry.manaCost(),
+				AbilityLog.get().baseManaCost(entry.spellName()),
+				" mana", cfg)).withStyle(ChatFormatting.AQUA));
 		}
 		if (entry.healthCost() > 0) {
-			String tail = cfg.showManaLabel
-				? "  -" + entry.healthCost() + " hp"
-				: "  -" + entry.healthCost();
-			c.append(Component.literal(tail).withStyle(ChatFormatting.RED));
+			c.append(Component.literal(formatCostTail(
+				entry.healthCost(),
+				AbilityLog.get().baseHealthCost(entry.spellName()),
+				" hp", cfg)).withStyle(ChatFormatting.RED));
 		}
 		return c;
+	}
+
+	/**
+	 * Produces the trailing cost segment for a cost component (mana or hp).
+	 * With stacking on we just show the total ({@code "  -21 mana"}). With
+	 * stacking off we show the base cost for this spell with any extra above
+	 * base in parens ({@code "  -15 (+5) mana"} or just {@code "  -15 mana"}
+	 * when this cast matched the base).
+	 */
+	private static String formatCostTail(int cost, int baseCost, String unitSuffix, OverlayConfig cfg) {
+		String unit = cfg.showManaLabel ? unitSuffix : "";
+		if (cfg.stackAbilities || baseCost <= 0 || cost <= baseCost) {
+			return "  -" + cost + unit;
+		}
+		int extra = cost - baseCost;
+		return "  -" + baseCost + " (+" + extra + ")" + unit;
 	}
 }

@@ -14,30 +14,51 @@ import net.minecraft.network.chat.Component;
  *
  * <p>Two visual modes:
  * <ul>
- *   <li>{@link Mode#SETTINGS} (default) - shows the options panel. The overlay
+ *   <li>{@link Mode#SETTINGS} - shows a tabbed options panel. The overlay
  *       still renders in "editing" mode so the user can see the box they're
  *       configuring, but it is <em>not</em> draggable/resizable here.</li>
  *   <li>{@link Mode#EDIT_POSITION} - hides the options panel entirely, lets
  *       the user drag/resize the overlay freely, and shows a single "Done"
  *       button in the bottom center to return to {@code SETTINGS}.</li>
  * </ul>
- * Changes persist to {@code config/wynncombat.json} on close.
+ *
+ * <p>Options are grouped into {@link Tab tabs} so no single column grows
+ * taller than the screen. Changes persist to {@code config/wynncombat.json}
+ * on close.
  */
 public class AbilityLogScreen extends Screen {
 	public enum Mode { SETTINGS, EDIT_POSITION }
 
-	private static final int PANEL_WIDTH = 280;
-	private static final int PANEL_HEIGHT = 244;
+	/** Top-level tab selector inside {@link Mode#SETTINGS}. */
+	public enum Tab {
+		APPEARANCE("Appearance"),
+		BEHAVIOR("Behavior");
+
+		public final String label;
+
+		Tab(String label) {
+			this.label = label;
+		}
+	}
+
+	private static final int PANEL_WIDTH = 300;
+	private static final int PANEL_HEIGHT = 250;
 	private static final int BACKGROUND_COLOR = 0xCC101010;
 	private static final int BORDER_COLOR = 0xFFFFFFFF;
 	private static final int TITLE_COLOR = 0xFFFFFFFF;
 	private static final int LABEL_COLOR = 0xFFAAAAAA;
+	private static final int TAB_SELECTED_COLOR = 0xFF3E5E9B;
+	private static final int TAB_UNSELECTED_COLOR = 0xFF2A2A2A;
 
 	private static final int ROW_H = 22;
-	private static final int BTN_W = 130;
+	private static final int TITLE_Y = 10;
+	private static final int TAB_ROW_Y = 26;
+	private static final int TAB_H = 18;
+	private static final int CONTENT_Y = 52;
 
 	private final Screen parent;
 	private Mode mode = Mode.SETTINGS;
+	private Tab tab = Tab.APPEARANCE;
 
 	private boolean draggingMove = false;
 	private boolean draggingResize = false;
@@ -67,9 +88,46 @@ public class AbilityLogScreen extends Screen {
 		int panelX = (this.width - PANEL_WIDTH) / 2;
 		int panelY = (this.height - PANEL_HEIGHT) / 2;
 
-		int leftX = panelX + 12;
-		int rightX = panelX + PANEL_WIDTH - BTN_W - 12;
-		int contentY = panelY + 32;
+		buildTabRow(panelX, panelY);
+
+		int rowW = PANEL_WIDTH - 24;
+		int rowX = panelX + 12;
+		int y = panelY + CONTENT_Y;
+
+		switch (tab) {
+			case APPEARANCE -> buildAppearanceTab(cfg, rowX, y, rowW);
+			case BEHAVIOR -> buildBehaviorTab(cfg, rowX, y, rowW);
+		}
+
+		buildBottomRow(panelX, panelY, cfg);
+	}
+
+	private void buildTabRow(int panelX, int panelY) {
+		Tab[] tabs = Tab.values();
+		int rowW = PANEL_WIDTH - 24;
+		int gap = 4;
+		int tabW = (rowW - gap * (tabs.length - 1)) / tabs.length;
+		int startX = panelX + 12;
+		int y = panelY + TAB_ROW_Y;
+		for (int i = 0; i < tabs.length; i++) {
+			Tab t = tabs[i];
+			int x = startX + i * (tabW + gap);
+			this.addRenderableWidget(Button.builder(Component.literal(t.label), b -> {
+					tab = t;
+					rebuild();
+				})
+				.bounds(x, y, tabW, TAB_H)
+				.build());
+		}
+	}
+
+	private void buildAppearanceTab(OverlayConfig cfg, int rowX, int y, int rowW) {
+		this.addRenderableWidget(Button.builder(Component.literal("Enabled: " + onOff(cfg.enabled)), b -> {
+				cfg.enabled = !cfg.enabled;
+				b.setMessage(Component.literal("Enabled: " + onOff(cfg.enabled)));
+			})
+			.bounds(rowX, y, rowW, 20)
+			.build());
 
 		this.addRenderableWidget(Button.builder(Component.literal("Anchor: " + cfg.anchor.name()), b -> {
 				cfg.anchor = cfg.anchor.next();
@@ -77,74 +135,95 @@ public class AbilityLogScreen extends Screen {
 				cfg.offsetY = 50;
 				b.setMessage(Component.literal("Anchor: " + cfg.anchor.name()));
 			})
-			.bounds(rightX, contentY, BTN_W, 20)
+			.bounds(rowX, y + ROW_H, rowW, 20)
 			.build());
 
 		this.addRenderableWidget(Button.builder(Component.literal("Text: " + cfg.textColor.label), b -> {
 				cfg.textColor = cfg.textColor.next();
 				b.setMessage(Component.literal("Text: " + cfg.textColor.label));
 			})
-			.bounds(rightX, contentY + ROW_H, BTN_W, 20)
+			.bounds(rowX, y + ROW_H * 2, rowW, 20)
 			.build());
 
 		this.addRenderableWidget(Button.builder(Component.literal("BG: " + cfg.background.label), b -> {
 				cfg.background = cfg.background.next();
 				b.setMessage(Component.literal("BG: " + cfg.background.label));
 			})
-			.bounds(rightX, contentY + ROW_H * 2, BTN_W, 20)
+			.bounds(rowX, y + ROW_H * 3, rowW, 20)
 			.build());
 
 		this.addRenderableWidget(Button.builder(Component.literal("Shadow: " + onOff(cfg.shadow)), b -> {
 				cfg.shadow = !cfg.shadow;
 				b.setMessage(Component.literal("Shadow: " + onOff(cfg.shadow)));
 			})
-			.bounds(rightX, contentY + ROW_H * 3, BTN_W, 20)
+			.bounds(rowX, y + ROW_H * 4, rowW, 20)
 			.build());
 
 		this.addRenderableWidget(Button.builder(Component.literal("Labels: " + onOff(cfg.showManaLabel)), b -> {
 				cfg.showManaLabel = !cfg.showManaLabel;
 				b.setMessage(Component.literal("Labels: " + onOff(cfg.showManaLabel)));
 			})
-			.bounds(rightX, contentY + ROW_H * 4, BTN_W, 20)
+			.bounds(rowX, y + ROW_H * 5, rowW, 20)
 			.build());
 
 		this.addRenderableWidget(Button.builder(Component.literal("Font Size: " + cfg.fontSize.level), b -> {
 				cfg.fontSize = cfg.fontSize.next();
 				b.setMessage(Component.literal("Font Size: " + cfg.fontSize.level));
 			})
-			.bounds(rightX, contentY + ROW_H * 5, BTN_W, 20)
+			.bounds(rowX, y + ROW_H * 6, rowW, 20)
+			.build());
+	}
+
+	private void buildBehaviorTab(OverlayConfig cfg, int rowX, int y, int rowW) {
+		this.addRenderableWidget(Button.builder(Component.literal("Stack: " + onOff(cfg.stackAbilities)), b -> {
+				cfg.stackAbilities = !cfg.stackAbilities;
+				b.setMessage(Component.literal("Stack: " + onOff(cfg.stackAbilities)));
+			})
+			.bounds(rowX, y, rowW, 20)
 			.build());
 
 		this.addRenderableWidget(new SecondsSlider(
-			leftX, contentY, BTN_W - 10, 20,
+			rowX, y + ROW_H, rowW, 20,
 			"Lifetime", cfg.entryLifetimeMs, 1000, 30_000,
 			v -> cfg.entryLifetimeMs = v
 		));
 
 		this.addRenderableWidget(new SecondsSlider(
-			leftX, contentY + ROW_H, BTN_W - 10, 20,
+			rowX, y + ROW_H * 2, rowW, 20,
 			"Fade", cfg.fadeMs, 0, 5000,
 			v -> cfg.fadeMs = v
 		));
+	}
+
+	private void buildBottomRow(int panelX, int panelY, OverlayConfig cfg) {
+		int bottomY = panelY + PANEL_HEIGHT - 28;
+
+		int editW = 120;
+		int resetW = 60;
+		int backW = 60;
+		int gap = 6;
+
+		int total = editW + gap + resetW + gap + backW;
+		int x = panelX + (PANEL_WIDTH - total) / 2;
 
 		this.addRenderableWidget(Button.builder(Component.literal("Edit Position/Size"), b -> {
 				mode = Mode.EDIT_POSITION;
 				rebuild();
 			})
-			.bounds(leftX, contentY + ROW_H * 3, BTN_W - 10, 20)
+			.bounds(x, bottomY, editW, 20)
 			.build());
-
-		int bottomY = panelY + PANEL_HEIGHT - 30;
+		x += editW + gap;
 
 		this.addRenderableWidget(Button.builder(Component.literal("Reset"), b -> {
 				cfg.resetToDefaults();
 				rebuild();
 			})
-			.bounds(leftX, bottomY, 60, 20)
+			.bounds(x, bottomY, resetW, 20)
 			.build());
+		x += resetW + gap;
 
 		this.addRenderableWidget(Button.builder(Component.literal("Back"), b -> this.onClose())
-			.bounds(panelX + PANEL_WIDTH - 70 - 12, bottomY, 70, 20)
+			.bounds(x, bottomY, backW, 20)
 			.build());
 	}
 
@@ -173,11 +252,11 @@ public class AbilityLogScreen extends Screen {
 
 	@Override
 	public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
-		// Skip the default blur + dim in edit-position mode so the overlay
-		// (which rendered during the preceding HUD pass) stays crisp and at
-		// full brightness. Settings mode keeps the vanilla blur for focus.
-		if (mode == Mode.EDIT_POSITION) return;
-		super.extractBackground(graphics, mouseX, mouseY, delta);
+		// Skip the default blur + dim in both modes so the overlay
+		// (which rendered during the preceding HUD pass with editing=true)
+		// stays crisp and highlighted. The settings panel draws its own
+		// solid dark background on top, which keeps it readable.
+		return;
 	}
 
 	@Override
@@ -189,9 +268,15 @@ public class AbilityLogScreen extends Screen {
 			graphics.fill(panelX, panelY, panelX + PANEL_WIDTH, panelY + PANEL_HEIGHT, BACKGROUND_COLOR);
 			drawBorder(graphics, panelX, panelY, PANEL_WIDTH, PANEL_HEIGHT, BORDER_COLOR);
 
+			// Paint behind the active tab button so the selection is obvious
+			// even before the user hovers. Button text stays visible because
+			// vanilla draws widgets after extractRenderState returns (via
+			// super.extractRenderState below).
+			paintActiveTabStripe(graphics, panelX, panelY);
+
 			Component title = Component.literal("Ability Log");
 			int titleX = (this.width - this.font.width(title)) / 2;
-			graphics.text(this.font, title, titleX, panelY + 10, TITLE_COLOR, false);
+			graphics.text(this.font, title, titleX, panelY + TITLE_Y, TITLE_COLOR, false);
 		} else {
 			Component hint = Component.literal("Drag the cyan box to move. Drag the white corner to resize.");
 			int hintX = (this.width - this.font.width(hint)) / 2;
@@ -199,6 +284,20 @@ public class AbilityLogScreen extends Screen {
 		}
 
 		super.extractRenderState(graphics, mouseX, mouseY, delta);
+	}
+
+	private void paintActiveTabStripe(GuiGraphicsExtractor graphics, int panelX, int panelY) {
+		Tab[] tabs = Tab.values();
+		int rowW = PANEL_WIDTH - 24;
+		int gap = 4;
+		int tabW = (rowW - gap * (tabs.length - 1)) / tabs.length;
+		int startX = panelX + 12;
+		int y = panelY + TAB_ROW_Y;
+		for (int i = 0; i < tabs.length; i++) {
+			int x = startX + i * (tabW + gap);
+			int color = tabs[i] == tab ? TAB_SELECTED_COLOR : TAB_UNSELECTED_COLOR;
+			graphics.fill(x, y + TAB_H, x + tabW, y + TAB_H + 2, color);
+		}
 	}
 
 	private static void drawBorder(GuiGraphicsExtractor g, int x, int y, int w, int h, int color) {

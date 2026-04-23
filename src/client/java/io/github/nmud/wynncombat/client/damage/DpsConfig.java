@@ -30,6 +30,23 @@ public final class DpsConfig {
 	public static final class DpsWindow {
 		public int seconds;
 		public boolean enabled;
+		/**
+		 * User-supplied label text that replaces the auto "1s" / "30s"
+		 * rendering. {@code null} or blank means fall back to {@link #autoLabel()}.
+		 */
+		public String customLabel;
+
+		/**
+		 * Per-row free positioning, set by the edit-position screen when the
+		 * user drags an individual DPS row inside the overlay box. When
+		 * {@code true}, {@link #rowX}/{@link #rowY} hold the row's top-left
+		 * offset <em>from the box's top-left corner</em> (in unscaled GUI
+		 * pixels). When {@code false} the row falls back to the automatic
+		 * top-to-bottom stacked layout.
+		 */
+		public boolean customPosition = false;
+		public int rowX = 0;
+		public int rowY = 0;
 
 		public DpsWindow() {
 			this(1, true);
@@ -38,12 +55,42 @@ public final class DpsConfig {
 		public DpsWindow(int seconds, boolean enabled) {
 			this.seconds = seconds;
 			this.enabled = enabled;
+			this.customLabel = null;
 		}
 
-		public String label() {
+		/** Auto-generated label derived purely from {@link #seconds}. */
+		public String autoLabel() {
 			if (seconds < 60) return seconds + "s";
 			if (seconds % 60 == 0) return (seconds / 60) + "m";
 			return (seconds / 60) + "m" + (seconds % 60) + "s";
+		}
+
+		/** Effective label: user override when present, else the auto label. */
+		public String label() {
+			if (customLabel != null && !customLabel.isBlank()) return customLabel;
+			return autoLabel();
+		}
+	}
+
+	/**
+	 * How the label portion of each DPS row is decorated. The value text is
+	 * always drawn plain; only the label ("1s", "30s", or the user's custom
+	 * override) gets the box/pill treatment.
+	 */
+	public enum LabelStyle {
+		NONE("None"),
+		BORDER("Border"),
+		PILL("Pill");
+
+		public final String label;
+
+		LabelStyle(String label) {
+			this.label = label;
+		}
+
+		public LabelStyle next() {
+			LabelStyle[] all = values();
+			return all[(ordinal() + 1) % all.length];
 		}
 	}
 
@@ -63,33 +110,6 @@ public final class DpsConfig {
 		}
 	}
 
-	/**
-	 * Font families exposed via Minecraft's built-in font assets
-	 * ({@code default}, {@code alt}, {@code uniform}, {@code illageralt}).
-	 * We don't ship custom font atlases -- doing so is a much bigger effort
-	 * and the built-ins are enough to give the overlay visually distinct
-	 * "styles" the user asked for.
-	 */
-	public enum FontFamily {
-		DEFAULT("Default", "default"),
-		UNIFORM("Uniform", "uniform"),
-		ALT("Alt", "alt"),
-		ILLAGER("Illager", "illageralt");
-
-		public final String label;
-		public final String identifierPath;
-
-		FontFamily(String label, String identifierPath) {
-			this.label = label;
-			this.identifierPath = identifierPath;
-		}
-
-		public FontFamily next() {
-			FontFamily[] all = values();
-			return all[(ordinal() + 1) % all.length];
-		}
-	}
-
 	/** Master toggle. If {@code false} the overlay does not render at all. */
 	public boolean enabled = true;
 
@@ -103,10 +123,23 @@ public final class DpsConfig {
 	public OverlayConfig.Background background = OverlayConfig.Background.DARK;
 	public boolean shadow = true;
 	public OverlayConfig.FontSize fontSize = OverlayConfig.FontSize.THREE;
-	public FontFamily fontFamily = FontFamily.DEFAULT;
 
 	public DisplayMode displayMode = DisplayMode.ALL;
 	public int cycleIndex = 0;
+
+	/** Decoration style around the label portion of each DPS row. */
+	public LabelStyle labelStyle = LabelStyle.NONE;
+	/**
+	 * When true (default) the label text is drawn in the same color as the
+	 * value (which may itself be tier-colored). When false, label uses
+	 * {@link #labelTextColor} and is independent of the value color.
+	 */
+	public boolean labelUniformColor = true;
+	public OverlayConfig.TextColor labelTextColor = OverlayConfig.TextColor.WHITE;
+	/** Background fill color for {@link LabelStyle#PILL}. */
+	public OverlayConfig.Background labelBackground = OverlayConfig.Background.DARK;
+	/** Border color for {@link LabelStyle#BORDER}. Uses the same palette as the label text. */
+	public OverlayConfig.TextColor labelBorderColor = OverlayConfig.TextColor.WHITE;
 
 	/**
 	 * Color the value by tier. Default cutoffs are hard-coded so the settings
@@ -169,13 +202,17 @@ public final class DpsConfig {
 		this.background = fresh.background;
 		this.shadow = fresh.shadow;
 		this.fontSize = fresh.fontSize;
-		this.fontFamily = fresh.fontFamily;
 		this.displayMode = fresh.displayMode;
 		this.cycleIndex = fresh.cycleIndex;
 		this.colorTiers = fresh.colorTiers;
 		this.tierMidDps = fresh.tierMidDps;
 		this.tierHighDps = fresh.tierHighDps;
 		this.tierExtremeDps = fresh.tierExtremeDps;
+		this.labelStyle = fresh.labelStyle;
+		this.labelUniformColor = fresh.labelUniformColor;
+		this.labelTextColor = fresh.labelTextColor;
+		this.labelBackground = fresh.labelBackground;
+		this.labelBorderColor = fresh.labelBorderColor;
 		this.windows = defaultWindows();
 	}
 
@@ -230,8 +267,11 @@ public final class DpsConfig {
 		if (background == null) background = OverlayConfig.Background.DARK;
 		if (textColor == null) textColor = OverlayConfig.TextColor.WHITE;
 		if (fontSize == null) fontSize = OverlayConfig.FontSize.THREE;
-		if (fontFamily == null) fontFamily = FontFamily.DEFAULT;
 		if (displayMode == null) displayMode = DisplayMode.ALL;
+		if (labelStyle == null) labelStyle = LabelStyle.NONE;
+		if (labelTextColor == null) labelTextColor = OverlayConfig.TextColor.WHITE;
+		if (labelBackground == null) labelBackground = OverlayConfig.Background.DARK;
+		if (labelBorderColor == null) labelBorderColor = OverlayConfig.TextColor.WHITE;
 		if (windows == null) windows = defaultWindows();
 		for (DpsWindow w : windows) {
 			if (w == null) continue;

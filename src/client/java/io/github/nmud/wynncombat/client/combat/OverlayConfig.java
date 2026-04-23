@@ -133,6 +133,14 @@ public final class OverlayConfig {
 	public boolean shadow = true;
 	/** When true, show " mana"/" hp" text next to cost numbers. Otherwise show just "-21". */
 	public boolean showManaLabel = true;
+	/**
+	 * When true (default), consecutive casts of the same spell merge into a
+	 * single row ({@code "Bash x3"}) with summed cost. When false, each cast
+	 * is its own row and the cost is rendered in {@code "base (+extra)"} form:
+	 * {@code "Dash 15 (+5)"} means the minimum cost seen for this spell is 15
+	 * and this specific cast was 5 mana above the base (e.g. a recast penalty).
+	 */
+	public boolean stackAbilities = true;
 	public FontSize fontSize = FontSize.THREE;
 	public long entryLifetimeMs = 5000;
 	public long fadeMs = 800;
@@ -177,6 +185,7 @@ public final class OverlayConfig {
 		this.background = fresh.background;
 		this.shadow = fresh.shadow;
 		this.showManaLabel = fresh.showManaLabel;
+		this.stackAbilities = fresh.stackAbilities;
 		this.fontSize = fresh.fontSize;
 		this.entryLifetimeMs = fresh.entryLifetimeMs;
 		this.fadeMs = fresh.fadeMs;

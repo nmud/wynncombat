@@ -5,7 +5,9 @@ import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Bounded ring buffer of recently observed spell casts, fed by the client's
@@ -30,6 +32,14 @@ import java.util.List;
  * {@link AbilityLogEntry#stackCount()}. So spamming Bash three times shows
  * up as a single "Bash x3 -63 mana" row rather than three separate lines.
  *
+ * <p><b>Stacking toggle:</b> when
+ * {@link OverlayConfig#stackAbilities} is {@code false}, merging is disabled
+ * entirely - every cast is its own row. In that mode the overlay displays
+ * costs as {@code "base (+extra)"}, where "base" is the minimum cost ever
+ * observed for that spell name in this session and "extra" is the delta above
+ * that base for this particular cast. We therefore track a per-spell
+ * min-cost map here so that value is available to the renderer.
+ *
  * <p>The log is intentionally process-local: the listener is registered once
  * during client init and runs whenever Minecraft is connected to a server.
  * Filtering to "actually on Wynncraft" is a future concern; today the regex
@@ -49,6 +59,8 @@ public final class AbilityLog {
 
 	private final Object lock = new Object();
 	private final Deque<AbilityLogEntry> entries = new ArrayDeque<>(MAX_ENTRIES);
+	private final Map<String, Integer> baseManaByName = new HashMap<>();
+	private final Map<String, Integer> baseHealthByName = new HashMap<>();
 	private volatile boolean spellTextActive = false;
 
 	private AbilityLog() {}
@@ -78,20 +90,26 @@ public final class AbilityLog {
 
 	private void record(SpellCastInfo info) {
 		long now = System.currentTimeMillis();
+		boolean stack = OverlayConfig.get().stackAbilities;
 		synchronized (lock) {
-			AbilityLogEntry last = entries.peekLast();
-			if (last != null
-				&& last.spellName().equals(info.spellName())
-				&& (now - last.timestampMs()) <= STACK_WINDOW_MS) {
-				entries.removeLast();
-				entries.addLast(new AbilityLogEntry(
-					last.spellName(),
-					last.manaCost() + info.manaCost(),
-					last.healthCost() + info.healthCost(),
-					now,
-					last.stackCount() + 1
-				));
-				return;
+			updateBaseCost(baseManaByName, info.spellName(), info.manaCost());
+			updateBaseCost(baseHealthByName, info.spellName(), info.healthCost());
+
+			if (stack) {
+				AbilityLogEntry last = entries.peekLast();
+				if (last != null
+					&& last.spellName().equals(info.spellName())
+					&& (now - last.timestampMs()) <= STACK_WINDOW_MS) {
+					entries.removeLast();
+					entries.addLast(new AbilityLogEntry(
+						last.spellName(),
+						last.manaCost() + info.manaCost(),
+						last.healthCost() + info.healthCost(),
+						now,
+						last.stackCount() + 1
+					));
+					return;
+				}
 			}
 			entries.addLast(new AbilityLogEntry(
 				info.spellName(),
@@ -102,6 +120,28 @@ public final class AbilityLog {
 			while (entries.size() > MAX_ENTRIES) {
 				entries.removeFirst();
 			}
+		}
+	}
+
+	private static void updateBaseCost(Map<String, Integer> map, String name, int cost) {
+		if (cost <= 0) return;
+		Integer existing = map.get(name);
+		if (existing == null || cost < existing) map.put(name, cost);
+	}
+
+	/** Minimum mana cost observed for {@code spellName} this session, or 0. */
+	public int baseManaCost(String spellName) {
+		synchronized (lock) {
+			Integer v = baseManaByName.get(spellName);
+			return v == null ? 0 : v;
+		}
+	}
+
+	/** Minimum health cost observed for {@code spellName} this session, or 0. */
+	public int baseHealthCost(String spellName) {
+		synchronized (lock) {
+			Integer v = baseHealthByName.get(spellName);
+			return v == null ? 0 : v;
 		}
 	}
 
