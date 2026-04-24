@@ -10,6 +10,8 @@ import io.github.nmud.wynncombat.client.damage.DpsOverlay;
 import io.github.nmud.wynncombat.client.debug.CombatDebug;
 import io.github.nmud.wynncombat.client.debug.FocusedEntityTracker;
 import io.github.nmud.wynncombat.client.gui.WynnCombatScreen;
+import io.github.nmud.wynncombat.client.recorder.DpsRecorder;
+import io.github.nmud.wynncombat.client.recorder.DpsRecorderOverlay;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
@@ -26,6 +28,7 @@ public class WynnCombatClient implements ClientModInitializer {
 	public static KeyMapping toggleDpsKey;
 	public static KeyMapping dpsCyclePrevKey;
 	public static KeyMapping dpsCycleNextKey;
+	public static KeyMapping toggleRecordingKey;
 
 	@Override
 	public void onInitializeClient() {
@@ -79,6 +82,16 @@ public class WynnCombatClient implements ClientModInitializer {
 			category
 		));
 
+		// Recording toggle starts UNBOUND. It's a destructive-ish action
+		// (stop finalises and writes a file) so we don't want a random
+		// default keycap conflict producing surprise recordings.
+		toggleRecordingKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
+			"key.wynncombat.toggle_recording",
+			InputConstants.Type.KEYSYM,
+			GLFW.GLFW_KEY_UNKNOWN,
+			category
+		));
+
 		CombatDebug.register();
 		AbilityLog.register();
 
@@ -92,6 +105,12 @@ public class WynnCombatClient implements ClientModInitializer {
 			VanillaHudElements.CHAT,
 			Identifier.fromNamespaceAndPath(WynnCombat.MOD_ID, "dps_overlay"),
 			new DpsOverlay()
+		);
+
+		HudElementRegistry.attachElementBefore(
+			VanillaHudElements.CHAT,
+			Identifier.fromNamespaceAndPath(WynnCombat.MOD_ID, "dps_recorder_indicator"),
+			new DpsRecorderOverlay()
 		);
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
@@ -130,6 +149,19 @@ public class WynnCombatClient implements ClientModInitializer {
 					cfg.cycleNext();
 				}
 			}
+
+			while (toggleRecordingKey.consumeClick()) {
+				DpsRecorder recorder = DpsRecorder.get();
+				if (recorder.isRecording()) {
+					recorder.stop();
+				} else {
+					recorder.start();
+				}
+			}
+
+			// Advance the recorder's per-second bucket boundary every tick
+			// (~20 Hz). It only does work while a recording is active.
+			DpsRecorder.get().tick();
 
 			FocusedEntityTracker.tick(client);
 		});

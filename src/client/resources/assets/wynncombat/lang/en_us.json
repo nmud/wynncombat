@@ -5,5 +5,6 @@
 	"key.wynncombat.toggle_ability_log": "Toggle Ability Log Overlay",
 	"key.wynncombat.toggle_dps": "Toggle DPS Overlay",
 	"key.wynncombat.dps_cycle_prev": "DPS Cycle Previous Window",
-	"key.wynncombat.dps_cycle_next": "DPS Cycle Next Window"
+	"key.wynncombat.dps_cycle_next": "DPS Cycle Next Window",
+	"key.wynncombat.toggle_recording": "Start / Stop DPS Recording"
 }

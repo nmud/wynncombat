@@ -1,5 +1,6 @@
 package io.github.nmud.wynncombat.client.combat;
 
+import io.github.nmud.wynncombat.client.recorder.DpsRecorder;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 
 import java.util.ArrayDeque;
@@ -89,6 +90,11 @@ public final class AbilityLog {
 	}
 
 	private void record(SpellCastInfo info) {
+		// Notify the DPS recorder BEFORE any stacking / dedup logic. Users
+		// want every individual cast (with its exact timing) in the recorded
+		// timeline, not the merged "Bash x3" rollup the overlay shows.
+		DpsRecorder.get().onCast(info);
+
 		long now = System.currentTimeMillis();
 		boolean stack = OverlayConfig.get().stackAbilities;
 		synchronized (lock) {

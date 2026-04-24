@@ -1,6 +1,7 @@
 package io.github.nmud.wynncombat.client.damage;
 
 import io.github.nmud.wynncombat.client.debug.DebugLogger;
+import io.github.nmud.wynncombat.client.recorder.DpsRecorder;
 import net.minecraft.network.chat.Component;
 
 import java.util.ArrayDeque;
@@ -76,6 +77,9 @@ public final class DamageTracker {
 			pushLogEntry(now, delta);
 		}
 		lastDamageMs = now;
+		// Mirror the delta into the recorder so its per-second buckets
+		// stay in sync with the rolling overlay log.
+		DpsRecorder.get().onDamage(delta);
 	}
 
 	/** Forget per-entity state when the mob / damage label despawns. */

@@ -12,7 +12,7 @@ import net.minecraft.network.chat.Component;
  */
 public class WynnCombatScreen extends Screen {
 	private static final int PANEL_WIDTH = 240;
-	private static final int PANEL_HEIGHT = 160;
+	private static final int PANEL_HEIGHT = 190;
 	private static final int BACKGROUND_COLOR = 0xCC101010;
 	private static final int BORDER_COLOR = 0xFFFFFFFF;
 	private static final int TITLE_COLOR = 0xFFFFFFFF;
@@ -49,6 +49,14 @@ public class WynnCombatScreen extends Screen {
 				}
 			})
 			.bounds(btnX, contentY + BTN_H + ROW_GAP, BTN_W, BTN_H)
+			.build());
+
+		this.addRenderableWidget(Button.builder(Component.literal("DPS Recorder"), b -> {
+				if (this.minecraft != null) {
+					this.minecraft.setScreen(new DpsRecorderScreen(this));
+				}
+			})
+			.bounds(btnX, contentY + (BTN_H + ROW_GAP) * 2, BTN_W, BTN_H)
 			.build());
 
 		int bottomY = panelY + PANEL_HEIGHT - BTN_H - 12;
