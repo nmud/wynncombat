@@ -82,13 +82,13 @@ public class WynnCombatClient implements ClientModInitializer {
 			category
 		));
 
-		// Recording toggle starts UNBOUND. It's a destructive-ish action
-		// (stop finalises and writes a file) so we don't want a random
-		// default keycap conflict producing surprise recordings.
+		// Recording toggle defaults to F9. Vanilla Minecraft leaves F9
+		// unbound and the function-row is far enough from common combat
+		// keys that a default won't conflict with the player's combos.
 		toggleRecordingKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
 			"key.wynncombat.toggle_recording",
 			InputConstants.Type.KEYSYM,
-			GLFW.GLFW_KEY_UNKNOWN,
+			GLFW.GLFW_KEY_F9,
 			category
 		));
 
